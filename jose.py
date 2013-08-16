@@ -216,7 +216,8 @@ def encrypt(header, keys, plaintext, protect=[], aad=b''):
     # Generate cryptographic parameters according to "alg" and "enc"
     # Copy additional parameters into the header
     (CEK, JWEEncryptedKey, JWEInitializationVector, params) \
-        = josecrypto.generateSenderParams(header["alg"], header["enc"], key)
+        = josecrypto.generateSenderParams( \
+            header["alg"], header["enc"], key, header=header)
     EncodedJWEInitializationVector = b64enc(JWEInitializationVector)
     EncodedJWEEncryptedKey = b64enc(JWEEncryptedKey)
     for name in params:

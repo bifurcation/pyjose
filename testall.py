@@ -12,11 +12,26 @@ keys = [
     },
     {
         "kty":"EC",
-        "kid":"ec",
+        "kid":"ec256",
         "crv":"P-256",
         "x":"f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU",
         "y":"x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0",
         "d":"jpsQnnGQmL-YBIffH1136cspYG6-0iY7X1fCE9-E9LI"
+    },
+    {
+        'kty': 'EC',
+        'kid': 'ec384',
+        'crv': 'P-384',
+        'x': '-qvvx9HZZRtGndke5SnZ2gXk6csit0uagJMtz6JrN82ZXYXof7ANjBli1NFsYu1K',
+        'y': '1iRqc9gfL5h4DRHKteh0ok_cfXJ8TmBO28j7djl5BzLbbpvmuekjVCqP2uX_BvT5',
+        'd': 'iSE433j4C7rPY6AD3sHeGsNqHLczBnKz_Y3oieDHdamqvU6XdOqAeLJ595tIC8-H'
+    }, {
+        'kty': 'EC',
+        'crv': 'P-521',
+        'kid': 'ec521',
+        'x': '0Waix0O2wmSiXv6DL5TGoQwAfTf-wEDzZXqra-zSRCZhxay5zTauAZHeSaHrPCke5B8rVzDx0mv5wNOdPGpI7lY',
+        'y': 'AQ9Vj81SQKqiJSoRt6g5BmaftuNKyt70v0qf2BnAdc9TsS4JyZNLUV2b5sKZnpG9a_P4DVgVheLiMfxUiiCJK-5t',
+        'd': 'plEhLthi8ZkjuTycpb6QKqX9oUk5cnW1aLRcZlaxVPS-6JHUHszaJOyQXX71kTDu5EDTAIfYC9y6G-pV3LErBmQ'
     },
     { "kty":"oct", "kid":"oct128", "k":"ptFc4_gODAFn-tiDFqjigQ" },
     { "kty":"oct", "kid":"oct192", "k":"SiEiTR9nEmIJbJ0JCiX9-6LA9NiLvaea" },
@@ -33,9 +48,9 @@ kidMap = {
     "RS256": "rsa",
     "RS384": "rsa",
     "RS512": "rsa", 
-    "ES256": "ec",
-    "ES384": "ec",
-    "ES512": "ec", 
+    "ES256": "ec256",
+    "ES384": "ec384",
+    "ES512": "ec521", 
     "PS256": "rsa",
     "PS384": "rsa",
     "PS512": "rsa", 
@@ -46,10 +61,10 @@ kidMap = {
     "A128KW": "oct128",
     "A192KW": "oct192",
     "A256KW": "oct256", 
-    "ECDH-ES": "ec",
-    "ECDH-ES+A128KW": "ec",
-    "ECDH-ES+A192KW": "ec",
-    "ECDH-ES+A256KW": "ec", 
+    "ECDH-ES": "ec256",
+    "ECDH-ES+A128KW": "ec256",
+    "ECDH-ES+A192KW": "ec384",
+    "ECDH-ES+A256KW": "ec521", 
     "A128GCMKW": "oct128",
     "A192GCMKW": "oct192",
     "A256GCMKW": "oct256", 
@@ -79,7 +94,7 @@ testix = 0
 def reportResult(testix, alg, enc, level, valid, correct):
     print fmt.format(str(testix), alg, enc, str(level), str(valid), str(correct))
 
-testJWSbasic = False
+testJWSbasic = True
 testJWEbasic = True
 testJWSmulti = True
 testJWEmulti = True
@@ -144,7 +159,7 @@ if testJWSmulti:
     payload = "Quare fremuerunt gentes et populi meditati sunt inania"
     signers = [
         { "header": { "alg": "RS256", "kid": "rsa" } },
-        { "header": { "alg": "ES256", "kid": "ec" } }
+        { "header": { "alg": "ES256", "kid": "ec256" } }
     ]
     jwsm = sign_multi(signers, keys, payload)
     resm = verify_multi(jwsm, keys)
@@ -163,12 +178,12 @@ if testJWEmulti:
     header = { "enc": "A128CBC-HS256" }
     recipients = [
         { "alg": "A128KW", "kid": "oct128" },
-        { "alg": "ECDH-ES+A128KW", "kid": "ec" }
+        { "alg": "ECDH-ES+A128KW", "kid": "ec256" }
     ]
     jwem = encrypt_multi(header, recipients, keys, payload)
     decm0 = decrypt(jwem, keys)      # all
-    decm1 = decrypt(jwem, [keys[1]]) # ec
-    decm2 = decrypt(jwem, [keys[2]]) # oct128
+    decm1 = decrypt(jwem, [keys[1]]) # ec256
+    decm2 = decrypt(jwem, [keys[4]]) # oct128
 
     valid = (decm0["result"] and decm1["result"] and decm2["result"])
     correct = (payload == decm0["plaintext"]) \

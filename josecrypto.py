@@ -124,7 +124,8 @@ def sign(alg, jwk, signingInput):
         return P256.dsaSign(h, key)
     elif alg == "ES384":
         h = bytes_to_long(SHA384.new(signingInput).digest())
-        return P384.dsaSign(h, key)
+        sig = P384.dsaSign(h, key)
+        return sig
     elif alg == "ES512":
         h = bytes_to_long(SHA512.new(signingInput).digest())
         return P521.dsaSign(h, key)
@@ -253,11 +254,15 @@ def generateSenderParams(alg, enc, jwk, header={}, inCEK=None):
         CEK = key
     elif alg in ["ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW"]:
         # Generate the input parameters 
-        apu = header["apu"] if "apu" in header else Random.get_random_bytes(16) 
-        apv = header["apv"] if "apv" in header else Random.get_random_bytes(16) 
+        apu = b64dec(header["apu"]) if "apu" in header else Random.get_random_bytes(16) 
+        apv = b64dec(header["apv"]) if "apv" in header else Random.get_random_bytes(16) 
         # Generate an ephemeral key pair
         curve = NISTEllipticCurve.byName(getOrRaise(jwk, "crv"))
-        (eprivk, epk) = curve.keyPair()
+        if "epk" in header:
+            epk = importKey(header["epk"], private=False)
+            eprivk = importKey(header["epk"], private=True)
+        else:
+            (eprivk, epk) = curve.keyPair()
         # Derive the KEK and encrypt
         params = {
             "apu": b64enc(apu),

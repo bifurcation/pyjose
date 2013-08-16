@@ -170,7 +170,7 @@ def concat_SHA256(Z, dkLen, otherInfo):
     counter = 0
     while len(dkm) < dkBytes:
         counter += 1
-        counterBytes = pack("!Q", counter)
+        counterBytes = pack("!I", counter)
         dkm += SHA256.new( counterBytes + Z + otherInfo ).digest()
     return dkm[:dkBytes]
 
@@ -179,9 +179,9 @@ def ECDH_deriveKey(curve, key, epk, apu, apv, alg, dkLen):
     Z = curve.dhZ(key, epk)
     # Derive the key
     # AlgorithmID || PartyUInfo || PartyVInfo || SuppPubInfo
-    otherInfo = "A128KW" + \
-        pack("!Q", len(apu)) + apu + \
-        pack("!Q", len(apv)) + apv + \
-        pack("!Q", dkLen)
+    otherInfo = bytes(alg) + \
+        pack("!I", len(apu)) + apu + \
+        pack("!I", len(apv)) + apv + \
+        pack("!I", dkLen)
     return concat_SHA256(Z, dkLen, otherInfo)
 
