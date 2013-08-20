@@ -6,7 +6,7 @@ from Crypto.Hash import HMAC, SHA256, SHA384, SHA512
 from Crypto.Cipher import AES
 from Crypto.Cipher.AES import AESCipher
 from Crypto.Util.strxor import strxor
-from PBKDF2 import PBKDF2
+from cryptlib.PBKDF2 import PBKDF2
 from util import b64enc, b64dec
 from math import ceil
 

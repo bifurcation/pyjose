@@ -13,9 +13,21 @@ Note 1: All of the JWA algorithms are implemented here, except for "none" which 
 Note 2: This is very much a work in progress, so bugs may be plentiful, and documentation sparse.
 
 
+## Really Quick Start
+
+```
+$ sudo python setup.py install
+$ python -c "import jose.tests.quickstart"
+$ python -c "import jose.tests.examples"
+$ python -c "import jose.tests.testall"
+```
+
+
 ## Quick Tour
 
 ```
+#!/usr/bin/env python
+
 import jose
 
 plaintext = "Attack at dawn!"

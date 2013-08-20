@@ -10,8 +10,8 @@ from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 
 import polyfills
-from aes_gcm import AES_GCM, InvalidTagException
-from ecc import NISTEllipticCurve, P256, P384, P521
+from cryptlib.aes_gcm import AES_GCM, InvalidTagException
+from cryptlib.ecc import NISTEllipticCurve, P256, P384, P521
 from util import b64enc, b64dec
 
 def keyLength(enc):
