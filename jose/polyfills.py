@@ -304,7 +304,7 @@ def concat_SHA256(Z, dkLen, otherInfo):
     @type  Z: bytes
     @param Z: The shared secret value
     @type  dkLen: int
-    @param dkLen: Length of key to be derived, in octets
+    @param dkLen: Length of key to be derived, in bits
     @type  otherInfo: bytes
     @param otherInfo: Other info to be incorporated (see SP800-56A)
     @rtype: bytes
@@ -336,7 +336,7 @@ def ECDH_deriveKey(curve, key, epk, apu, apv, alg, dkLen):
     @type  alg  : string
     @param alg  : Algorithm identifier
     @type  dkLen: int
-    @param dkLen: Length of key to be derived
+    @param dkLen: Length of key to be derived, in bits
     @rtype: bytes
     @return: The derived key
     """

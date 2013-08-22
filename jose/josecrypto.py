@@ -1,5 +1,14 @@
 #!/usr/bin/env python
 
+"""
+High-level crypto routines for JOSE
+
+This module exposes high-level crypto functions, at roughly the
+same level of abstraction as JWE/JWS.  Specific crypto primitives
+are selected using JOSE identifiers.
+"""
+
+
 from Crypto import Random
 from Crypto.Hash import HMAC, SHA256, SHA384, SHA512
 from Crypto.PublicKey import RSA
@@ -12,9 +21,16 @@ from Crypto.Util.number import long_to_bytes, bytes_to_long
 import polyfills
 from cryptlib.aes_gcm import AES_GCM, InvalidTagException
 from cryptlib.ecc import NISTEllipticCurve, P256, P384, P521
-from util import b64enc, b64dec
+from util import b64enc, b64dec, getOrRaise
 
 def keyLength(enc):
+    """
+    Given a JOSE "enc" value, return the length in bits of the 
+    key used for that encryption algorithm.
+
+    @type enc: string
+    @rtype: int
+    """
     if enc in ["A128GCM"]:
         return 128
     if enc in ["A192GCM"]:
@@ -28,13 +44,22 @@ def keyLength(enc):
     else:
         raise Exception("Unknown key length for algorithm {}".format(enc))
 
-
-def getOrRaise(header, name):
-    if name not in header:
-        raise Exception("'{}' parameter required but not found".format(name))
-    return header[name]
-
 def importKey(jwk, private=False):
+    """
+    Translate a JWK to one of the internal representations used by 
+    our cryptographic libraries.
+      - A symmetric key is a raw python byte string
+      - An RSA public or private key is a PyCrypto RSA objects
+      - An EC private key is a long
+      - An EC public key is a tuple (long, long)
+
+    @type  jwk: dict
+    @param jwk: An unserialized JWK object
+    @type  private: boolean
+    @param private: Whether the imported key should be a private key (public default)
+    @rtype: any
+    @return: A native key object
+    """
     kty = getOrRaise(jwk, "kty")
     if kty == "oct":
         return b64dec(getOrRaise(jwk, "k"))
@@ -57,6 +82,28 @@ def importKey(jwk, private=False):
         raise Exception("Unknown key type {}".format(jwk["kty"])) 
 
 def exportKey(key, kty, curve=None):
+    """
+    Translate a native key to a JWK.  The formats used for native keys
+    are described in the L{importKey} method.
+
+    The "kty" argument specifies the type of key being exported, using the
+    standard JWK identifiers.  Support key types are:
+      - "oct" for symmetric keys
+      - "RSA" for RSA keys
+      - "EC" for EC keys
+
+    For EC keys, an elliptic curve must be specified, since this information
+    is not carried in the native EC public or private key formats.
+
+    @type  key: any
+    @param key: A native key object
+    @type  kty: string
+    @param kty: The type of key being exported
+    @type  curve: NISTEllipticCurve
+    @param curve: The elliptic curve to which the given EC key belongs
+    @rtype: dict
+    @return: An unserialized JWK
+    """
     if kty == "oct":
         return {
             "kty": kty,
@@ -94,6 +141,18 @@ def exportKey(key, kty, curve=None):
 
 
 def sign(alg, jwk, signingInput):
+    """
+    Sign an octet string with the specified algorithm and key.
+
+    @type  alg: string
+    @param alg: The JWS 'alg' value specifying the signing algorithm
+    @type  jwk: dict
+    @param jwk: The signing (private) key
+    @type  signingInput: bytes
+    @param signingInput: The octet string to be signed
+    @rtype: bytes
+    @return: The signature value
+    """
     key = importKey(jwk, private=True)
     if alg == "HS256":
         h = HMAC.new(key, digestmod=SHA256)
@@ -147,6 +206,21 @@ def sign(alg, jwk, signingInput):
         raise Exception("Unsupported algorithm {}".format(alg))
 
 def verify(alg, jwk, signingInput, sig):
+    """
+    Verify a signature over an octet string with the specified algorithm and key.
+
+    @type  alg: string
+    @param alg: The JWS 'alg' value specifying the signing algorithm
+    @type  jwk: dict
+    @param jwk: The verification (public) key
+    @type  signingInput: bytes
+    @param signingInput: The octet string to be verified
+    @type  sig: bytes
+    @param sig: The signature value
+    @rtype: boolean
+    @return: Whether the signature verified successfully
+    """
+
     key = importKey(jwk, private=False)
     if alg == "HS256":
         h = HMAC.new(key, digestmod=SHA256)
@@ -203,6 +277,15 @@ def verify(alg, jwk, signingInput, sig):
 
 
 def generateKeyIV(enc):
+    """
+    Generate a key and initialization vector for the specified
+    encryption algorithm.  
+
+    @type  enc: string
+    @param enc: The JWE "enc" value specifying the encryption algorithm
+    @rtype: tuple
+    @return: (key, iv), with both as bytes
+    """
     if enc == "A128GCM":
         key = Random.get_random_bytes(16)
         iv = Random.get_random_bytes(12)
@@ -232,6 +315,35 @@ def generateKeyIV(enc):
 
 
 def generateSenderParams(alg, enc, jwk, header={}, inCEK=None):
+    """
+    Generate parameters for the sender of a JWE.  This is essentially an 
+    encryptKey method, except (1) in some cases, the key is specified directly
+    or derived ("dir", "ECDH"), and (2) other parameters besides the encrypted
+    key are generated (e.g., the IV).
+
+    This method returns several things:
+      - A random CEK (can be overridden with the inCEK parameter)
+      - The encrypted CEK
+      - A random IV
+      - A dictionary of parameters generated within this function
+
+    The idea is that the parameters generated within this function (e.g.,
+    "epk", "p2s") should be added back to the JWE header
+
+    @type  alg: string
+    @param alg: The JWE "alg" value specifying the key management algorithm
+    @type  enc: string
+    @param enc: The JWE "enc" value specifying the encryption algorithm
+    @type  jwk: dict
+    @param jwk: The key to be used, as an unserialized JWK object
+    @type  header: dict
+    @param header: A header object with additional parameters
+    @type  inCEK: bytes
+    @param inCEK: A fixed CEK (overrides random CEK generation)
+    @rtype: tuple
+    @return: (CEK, encryptedKey, IV, params), the first three as bytes, 
+      params as dict.  
+    """
     # Generate a random key/iv for enc
     (CEK, IV) = generateKeyIV(enc)
     if inCEK:
@@ -304,6 +416,22 @@ def generateSenderParams(alg, enc, jwk, header={}, inCEK=None):
     return (CEK, encryptedKey, IV, params)
 
 def decryptKey(alg, enc, jwk, encryptedKey, header={}):
+    """
+    Decrypt a JWE encrypted key.
+    
+    @type  alg: string
+    @param alg: The JWE "alg" value specifying the key management algorithm
+    @type  enc: string
+    @param enc: The JWE "enc" value specifying the encryption algorithm
+    @type  jwk: dict
+    @param jwk: The key to be used, as an unserialized JWK object
+    @type  encryptedKey: bytes
+    @param encryptedKey: The key to decrypt
+    @type  header: dict
+    @param header: A header object containing additional parameters
+    @rtype: bytes
+    @return: The decrypted key
+    """
     key = importKey(jwk, private=True)
     if alg == "RSA1_5":
         sentinel = "fnord"
@@ -358,6 +486,22 @@ def decryptKey(alg, enc, jwk, encryptedKey, header={}):
 
 
 def encrypt(enc, key, iv, aad, pt):
+    """
+    Encrypt JWE content.
+
+    @type  enc: string
+    @param enc: The JWE "enc" value specifying the encryption algorithm
+    @type  key: bytes
+    @param key: Key (CEK)
+    @type  iv : bytes
+    @param iv : Initialization vector
+    @type  aad: bytes
+    @param aad: Additional authenticated data
+    @type  pt : bytes
+    @param pt : Plaintext
+    @rtype: tuple
+    @return: (ciphertext, tag), both as bytes
+    """
     if enc in ["A128GCM", "A192GCM", "A256GCM"]:
         gcm = AES_GCM(bytes_to_long(key))
         (ct, tag) = gcm.encrypt(bytes_to_long(iv), pt, aad)
@@ -369,6 +513,24 @@ def encrypt(enc, key, iv, aad, pt):
 
 
 def decrypt(enc, key, iv, aad, ct, tag):
+    """
+    Decrypt JWE content.
+
+    @type  enc: string
+    @param enc: The JWE "enc" value specifying the encryption algorithm
+    @type  key: bytes
+    @param key: Key (CEK)
+    @type  iv : bytes
+    @param iv : Initialization vector
+    @type  aad: bytes
+    @param aad: Additional authenticated data
+    @type  ct : bytes
+    @param ct : Ciphertext
+    @type  tag: bytes
+    @param tag: Authentication tag
+    @rtype: tuple
+    @return: (ciphertext, tag), both as bytes
+    """
     if enc in ["A128GCM", "A192GCM", "A256GCM"]:
         gcm = AES_GCM(bytes_to_long(key))
         try:

@@ -44,6 +44,37 @@ def b64dec(s):
 
 
 #############################
+# Dicionary accessors
+
+def getOrRaise(obj, name):
+    """
+    Returns the value in the dictionary, or raises an exception 
+    if the indicated name is not present.
+
+    @type  obj: dict
+    @type  name: string
+    @rtype: any
+    """
+    if name not in obj:
+        raise Exception("'{}' parameter required but not found".format(name))
+    return obj[name]
+
+def getOrEmpty(obj, name):
+    """
+    Returns the value in the dictionary, or the empty string if
+    the indicated name is not present.
+
+    @type  obj: dict
+    @type  name: string
+    @rtype: any
+    """
+    if name not in obj:
+        return ""
+    else:
+        return obj[name]
+
+
+#############################
 # Data structure manipulation 
 
 def splitHeader(header, protect):
