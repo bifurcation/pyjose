@@ -92,7 +92,7 @@ def sign(header, keys, payload, protect=[]):
     JWSSigningInput = createSigningInput(EncodedJWSProtectedHeader, EncodedJWSPayload)
 
     # Look up key
-    key = findKey(header, keys)
+    key = josecrypto.findKey(header, keys)
 
     # Compute the signature
     JWSSignature = josecrypto.sign(header["alg"], key, JWSSigningInput)
@@ -179,7 +179,7 @@ def verify(JWS, keys):
     JWSSigningInput = createSigningInput(EncodedJWSProtectedHeader, EncodedJWSPayload)
 
     # Look up the key
-    key = findKey(header, keys)
+    key = josecrypto.findKey(header, keys)
 
     # Verify the signature
     EncodedJWSSignature = JWS["signature"]

@@ -96,7 +96,7 @@ def encrypt(header, keys, plaintext, protect=[], aad=b''):
         JWEPlaintext = zlib.compress(JWEPlaintext)
 
     # Locate the key
-    key = findKey(header, keys)
+    key = josecrypto.findKey(header, keys)
     
     # Generate cryptographic parameters according to "alg" and "enc"
     # Copy additional parameters into the header
@@ -213,7 +213,7 @@ def decrypt(JWE, keys):
         EncodedJWEProtectedHeader, JWEAAD, JWE=True)
 
     # Locate the key
-    key = findKey(header, keys)
+    key = josecrypto.findKey(header, keys)
 
     # Unwrap or derive the key according to 'alg'
     EncodedJWEEncryptedKey = JWE["encrypted_key"] if "encrypted_key" in JWE else ""
@@ -307,7 +307,7 @@ def encrypt_multi(header, recipients, keys, plaintext, protect=[], aad=b''):
             raise Exception("Direct encryption not allowed with multi-recipient ('dir'/'ECDH-ES')")
 
         # Locate wrapping key and wrap key
-        jwk = findKey(r, keys)
+        jwk = josecrypto.findKey(r, keys)
         (CEK, encryptedKey, IV, params) = josecrypto.generateSenderParams(\
             alg, enc, jwk, header=r, inCEK=CEK)
         r = joinHeader(r, params)
@@ -365,7 +365,7 @@ def decrypt_multi(JWE, keys):
     selectedRecipient = None
     for r in JWE["recipients"]:
         try:
-            key = findKey(r["header"], keys)
+            key = josecrypto.findKey(r["header"], keys)
             selectedRecipient = r
         except:
             pass

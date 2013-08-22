@@ -2,8 +2,6 @@
 
 In no particular order: 
 
-* Support "jwk"
-* Support "x5c"
 * Support "jku" / "x5u"
 * Support "JWP" (or something for unsigned content)
 * Present key used for verification in result
@@ -17,3 +15,6 @@ In no particular order:
 * Support "crit"
 * Add docstrings to polyfills.py
 * Add docstrings to josecrypto.py
+* Support "jwk"
+* Support "x5c"
+* Add tests for "jwk" and "x5c"

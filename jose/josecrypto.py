@@ -17,11 +17,15 @@ from Crypto.Signature import PKCS1_PSS
 from Crypto.Cipher import PKCS1_v1_5, PKCS1_OAEP, AES
 from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Util.number import long_to_bytes, bytes_to_long
+from Crypto.Util.asn1 import DerSequence
 
+import re
+import base64
 import polyfills
 from cryptlib.aes_gcm import AES_GCM, InvalidTagException
 from cryptlib.ecc import NISTEllipticCurve, P256, P384, P521
 from util import b64enc, b64dec, getOrRaise
+
 
 def keyLength(enc):
     """
@@ -138,6 +142,83 @@ def exportKey(key, kty, curve=None):
         return jwk
     else: 
         raise Exception("Unknown key type {}".format(jwk["kty"])) 
+
+def extractRSAfromCert(pem):
+    """
+    Extract an RSA key from a PEM-encoded certificate
+
+    @type  pem: string
+    @param pem: PEM-encoded certificate
+    @rtype: dict
+    @return: Unserialized JWK for public key
+    """
+    pem = re.sub(r'[^A-Za-z0-9+/]', '', pem)
+    der = base64.b64decode(pem)
+    cert = DerSequence()
+    cert.decode(der)
+    tbsCertificate = DerSequence()
+    tbsCertificate.decode(cert[0])
+    subjectPublicKeyInfo = tbsCertificate[6]
+    rsa = RSA.importKey(subjectPublicKeyInfo)
+    return exportKey(rsa, "RSA")
+
+def findKey(header, keys):
+    """
+    Locates a usable key in a set of keys based on identifiers 
+    in the header.  
+
+    Currently, the following techniques are supported in order:
+      - If "kid" is in the header, search for matching "kid"
+      - If "jwk" is in the header, search for a key that matches
+        all fields in the JWK (but might have some private fields)
+          - If none found, return the value of the "jwk" header
+      - If "x5c" is in the header, pull the public key from the first
+        certificate in the chain, and search as for "jwk"
+          - If none found, return the extracted public key
+      - If there is only one key in the set, that key is used.
+
+    If no key is found, throws an exception.
+
+    @type  header: dict
+    @param header: Header with key identifier(s)
+    @type  keys  : list or set
+    @param keys  : Set of JWKs from which key is to be chosen
+    @rtype: dict 
+    @return: JWK selected from the set 
+    """
+    # Try "kid" search
+    if "kid" in header:
+        for k in keys:
+            if "kid" in k and k["kid"] == header["kid"]:
+                return k
+
+    # Try "jwk" search
+    def allFieldsMatch(a, b):
+        for k in a:
+            if k not in b or a[k] != b[k]:
+                return False
+        return True
+    if "jwk" in header:
+        for k in keys:
+            if allFieldsMatch(header["jwk"], k):
+                return k
+        return header["jwk"]
+
+    # Try "x5c" search
+    if "x5c" in header:
+        # XXX: This will fail if the cert has a non-RSA public key
+        jwk = extractRSAfromCert(header["x5c"][0])
+        for k in keys:
+            if allFieldsMatch(jwk, k):
+                return k
+        return jwk
+
+    # Only one key in the set
+    if len(keys) == 1:
+        return keys[0]
+    
+    # Tried everything, give up
+    raise Exception("Unable to locate key")
 
 
 def sign(alg, jwk, signingInput):

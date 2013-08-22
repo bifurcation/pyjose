@@ -122,36 +122,6 @@ def joinHeader(unprotected, protected):
     for x in protected: header[x] = protected[x]
     return header
 
-def findKey(header, keys):
-    """
-    Locates a usable key in a set of keys based on identifiers 
-    in the header.  
-
-    Currently, keys can only be located based on a "kid" value.
-    Or, if there is only one key in the set, that key is used.
-
-    If no key is found, throws an exception.
-
-    @type  header: dict
-    @param header: Header with key identifier(s)
-    @type  keys  : list or set
-    @param keys  : Set of JWKs from which key is to be chosen
-    @rtype: dict 
-    @return: JWK selected from the set 
-    """
-    key = None
-    if "kid" not in header and  len(keys) == 1:
-        key = keys[0]
-    elif "kid" not in header:
-        raise Exception("Key must be specified by ID (kid)")
-    else:
-        for k in keys:
-            if "kid" in k and k["kid"] == header["kid"]:
-                key = k
-    if key == None:
-        raise Exception("Unable to locate key")
-    return key
-
 def compliantCrit(header):
     """
     Check that the "crit" parameter, if present, is non-empty, and does 
@@ -185,7 +155,6 @@ def compliantCrit(header):
         return False
     else:
         return True
-
 
 def criticalParamsSupported(header, supported):
     """
