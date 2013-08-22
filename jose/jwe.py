@@ -17,6 +17,7 @@ Major functions provided in this module:
 
 
 import json
+import zlib
 from copy import copy
 import josecrypto
 from util import *
@@ -42,6 +43,13 @@ supported_enc = [
 """
 A list of "enc" value for JWE supported by this implementation
 """
+
+supported_hdr_ext = []
+"""
+A list of supported header extensions.  Currently empty because
+we don't support any.
+"""
+
 
 def encrypt(header, keys, plaintext, protect=[], aad=b''):
     """
@@ -82,6 +90,10 @@ def encrypt(header, keys, plaintext, protect=[], aad=b''):
     # Capture the plaintext and AAD inputs
     JWEPlaintext = copy(plaintext)
     JWEAAD = copy(aad)
+
+    # Compress the plaintext if required
+    if "zip" in header and header["zip"] == "DEF":
+        JWEPlaintext = zlib.compress(JWEPlaintext)
 
     # Locate the key
     key = findKey(header, keys)
@@ -192,6 +204,10 @@ def decrypt(JWE, keys):
         JWEProtectedHeader = {}
     header = joinHeader(JWEUnprotectedHeader, JWEProtectedHeader)
 
+    # Check that we support everything critical
+    if not criticalParamsSupported(header, supported_hdr_ext):
+        raise Exception("Unsupported critical fields")    
+
     # Construct the AAD
     JWEAuthenticatedData = createSigningInput( \
         EncodedJWEProtectedHeader, JWEAAD, JWE=True)
@@ -209,6 +225,10 @@ def decrypt(JWE, keys):
         header["enc"], CEK, JWEInitializationVector, JWEAuthenticatedData, \
             JWECiphertext, JWEAuthenticationTag )
     
+    # Decompress the plaintext if necessary
+    if "zip" in header and header["zip"] == "DEF":
+        JWEPlaintext = zlib.decompress(JWEPlaintext)
+
     # Return the results of decryption
     if JWEVerificationResult:
         return {

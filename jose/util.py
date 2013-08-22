@@ -7,6 +7,7 @@ This module provides a set of convenience functions for JOSE processing.
   - Base64 encoding and decoding without padding
   - Header splitting and joining
   - Key lookup
+  - "crit" header checking
   - Generation of input to signing / authentication
 """
 
@@ -120,6 +121,61 @@ def findKey(header, keys):
         raise Exception("Unable to locate key")
     return key
 
+def compliantCrit(header):
+    """
+    Check that the "crit" parameter, if present, is non-empty, and does 
+    not contain any standard fields, duplicate fields, or fields not 
+    in the header. 
+
+    @type  header: dict
+    @param header: JWS or JWE header
+    @rtype: boolean
+    """
+    if "crit" not in header:
+        return True
+    
+    crit = header["crit"]
+    critset = set(crit)
+    standard = set(["alg", "enc", "zip", "crit", "typ", "cty", \
+                "kid", "jwk", "jku", "x5c", "x5u", "x5t"])
+    if not isinstance(crit, list):
+        return False
+    elif len(crit) == 0:
+        # MUST NOT be empty
+        return False
+    elif len(crit) != len(critset):
+        # MUST NOT contain duplicate entries
+        return False
+    elif not critset <= set(header.keys()):
+        # MUST NOT contain entries not in the header
+        return False
+    elif len(critset & standard) > 0:
+        # MUST NOT contain standard fields
+        return False
+    else:
+        return True
+
+
+def criticalParamsSupported(header, supported):
+    """
+    Check whether the header contains a "crit" parameter, and if so,
+    whether all critical fields are supported.
+
+    @type  header: dict
+    @param header: JWS or JWE header
+    @type  supported: list
+    @param supported: List of supported header extensions
+    @rtype: boolean
+    """
+    if "crit" not in header:
+        return True
+    for key in header["crit"]:
+        if key not in header:
+            # This is weird, but not a failure
+            pass
+        if key not in supported:
+            return False
+    return True
 
 def createSigningInput(header, payload, JWE=False):
     """

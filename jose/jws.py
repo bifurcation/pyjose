@@ -33,6 +33,12 @@ supported_alg = [
 A list of "alg" values for JWS supported by this implementation
 """
 
+supported_hdr_ext = []
+"""
+A list of supported header extensions.  Currently empty because
+we don't support any.
+"""
+
 def sign(header, keys, payload, protect=[]):
     """
     Sign a payload and construct a JWS to encode the signature.
@@ -77,6 +83,10 @@ def sign(header, keys, payload, protect=[]):
         EncodedJWSProtectedHeader = b64enc(json.dumps(JWSProtectedHeader))
     else: 
         EncodedJWSProtectedHeader = ""
+
+    # Check that critical header is sensible, if present
+    if not compliantCrit(header):
+        raise Exception("'crit' parameter contains unsuitable fields")
 
     # Construct the JWS Signing Input
     JWSSigningInput = createSigningInput(EncodedJWSProtectedHeader, EncodedJWSPayload)
@@ -160,6 +170,10 @@ def verify(JWS, keys):
         EncodedJWSProtectedHeader = ""
         JWSProtectedHeader = {}
     header = joinHeader(JWSUnprotectedHeader, JWSProtectedHeader)
+
+    # Check that we support everything critical
+    if not criticalParamsSupported(header, supported_hdr_ext):
+        raise Exception("Unsupported critical fields")
 
     # Construct the JWS Signing Input
     JWSSigningInput = createSigningInput(EncodedJWSProtectedHeader, EncodedJWSPayload)

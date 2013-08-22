@@ -4,7 +4,17 @@
 Recognition and Classification of JOSE Objects
 
 This module provides a suite of functions that recognize various
-forms of JOSE objects.
+forms of JOSE objects.  The "serialized" and "unserialized" modules
+are separated to avoid circular dependencies with the serialization
+module.  This package imports all of their symbols, though so you
+can just import everything you need from here::
+  
+  import jose.validate
+
+  jose.validate.isJOSE(x)
+  jose.validate.isJWS_unserialized(x)
+  jose.validate.isJWE_compact(x)
+  # etc.
 """
 
 from unserialized import *
