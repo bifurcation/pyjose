@@ -29,6 +29,7 @@ $ python -c "import jose.tests.testall"
 #!/usr/bin/env python
 
 import jose
+from jose.serialize import serialize_compact
 
 plaintext = "Attack at dawn!"
 jwe_header = { "alg":"A128KW", "enc":"A128GCM" }
@@ -40,7 +41,7 @@ jwe1 = jose.encrypt(jwe_header, keys, plaintext)
 dec1 = jose.decrypt(jwe1, keys)
 
 # Encrypt into the compact serialization
-jwe2 = jose.compactify( \
+jwe2 = serialize_compact( \
         jose.encrypt(jwe_header, keys, plaintext, protect="*"))
 dec2 = jose.decrypt(jwe2, keys)
 
@@ -49,7 +50,7 @@ jws1 = jose.sign(jws_header, keys, plaintext)
 ver1 = jose.verify(jws1, keys)
 
 # Sign into the compact serialization
-jws2 = jose.compactify( \
+jws2 = serialize_compact( \
         jose.sign(jws_header, keys, plaintext, protect="*"))
 ver2 = jose.verify(jws2, keys)
 ```

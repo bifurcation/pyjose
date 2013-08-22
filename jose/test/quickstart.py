@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import jose
+from jose.serialize import serialize_compact
 
 plaintext = "Attack at dawn!"
 jwe_header = { "alg":"A128KW", "enc":"A128GCM" }
@@ -15,7 +16,7 @@ print dec1
 print
 
 # Encrypt into the compact serialization
-jwe2 = jose.compactify( \
+jwe2 = serialize_compact( \
         jose.encrypt(jwe_header, keys, plaintext, protect="*"))
 dec2 = jose.decrypt(jwe2, keys)
 print jwe2
@@ -30,7 +31,7 @@ print ver1
 print
 
 # Sign into the compact serialization
-jws2 = jose.compactify( \
+jws2 = serialize_compact( \
         jose.sign(jws_header, keys, plaintext, protect="*"))
 ver2 = jose.verify(jws2, keys)
 print jws2

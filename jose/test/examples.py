@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import jose
-from jose.util import b64enc, b64dec
 
 # JWS
 

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 from jose import *
+from jose.jws import supported_alg as jws_alg
+from jose.jwe import supported_alg as jwe_alg
+from jose.jwe import supported_enc as jwe_enc
 
 keys = [
     {
@@ -111,7 +114,7 @@ print div
 
 if testJWSbasic:
     payload = "Dixitque Deus fiat lux et facta est lux"
-    for alg in SupportedJWSAlg:
+    for alg in jws_alg:
         for p in ProtectionLevels:
             testix += 1
             header = {
@@ -130,8 +133,8 @@ if testJWSbasic:
 
 if testJWEbasic:
     payload = "In tenebris collocavit me quasi mortuos sempiternos."
-    for alg in SupportedJWEAlg:
-        for enc in SupportedEnc:
+    for alg in jwe_alg:
+        for enc in jwe_enc:
             for p in ProtectionLevels:
                 testix += 1
                 header = {
@@ -162,7 +165,7 @@ if testJWSmulti:
         { "header": { "alg": "ES256", "kid": "ec256" } }
     ]
     jwsm = sign_multi(signers, keys, payload)
-    resm = verify_multi(jwsm, keys)
+    resm = verify(jwsm, keys)
 
     valid = True
     for v in [ r["result"] for r in resm["results"] ]:
