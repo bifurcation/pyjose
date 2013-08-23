@@ -98,9 +98,9 @@ def reportResult(testix, alg, enc, level, valid, correct):
     print fmt.format(str(testix), alg, enc, str(level), str(valid), str(correct))
 
 testJWSbasic = True
-testJWEbasic = True
+testJWEbasic = False
 testJWSmulti = True
-testJWEmulti = True
+testJWEmulti = False
 
 
 # Print a header 

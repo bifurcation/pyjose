@@ -7,7 +7,7 @@ This module provides a suite of functions that recognize various
 forms of serialized JOSE objects.
 """
 
-from jose.serialize import deserialize_compact, deserialize_JSON
+from jose.serialize import deserialize_compact, deserialize_JSON, deserialize_msgpack
 from unserialized import *
 
 
@@ -90,3 +90,59 @@ def isJOSE_compact(x):
     @rtype: boolean
     """
     return isJWS_compact(x) or isJWE_compact(x)
+
+
+### msgpack-serialized
+
+def isJWS_msgpack_single(x):
+    """ 
+    Test whether input is a single-signature JWS-msgpack object 
+    @rtype: boolean
+    """
+    try: return isJWS_unserialized_single(deserialize_msgpack(x)) 
+    except: return False
+
+def isJWS_msgpack_multi(x):
+    """
+    Test whether input is a multi-signature JWS-msgpack object
+    @rtype: boolean
+    """
+    try: return isJWS_unserialized_multi(deserialize_msgpack(x)) 
+    except: return False
+
+def isJWS_msgpack(x):
+    """
+    Test whether input is a JWS-msgpack object
+    @rtype: boolean
+    """
+    return isJWS_msgpack_single(x) or isJWS_msgpack_multi(x)
+
+def isJWE_msgpack_single(x):
+    """
+    Test whether input is a single-recipient JWE-msgpack object
+    @rtype: boolean
+    """
+    try: return isJWE_unserialized_single(deserialize_msgpack(x)) 
+    except: return False
+
+def isJWE_msgpack_multi(x):
+    """
+    Test whether input is a multi-recipient JWE-msgpack object
+    @rtype: boolean
+    """
+    try: return isJWE_unserialized_multi(deserialize_msgpack(x)) 
+    except: return False
+
+def isJWE_msgpack(x):
+    """
+    Test whether input is a JWE-msgpack object
+    @rtype: boolean
+    """
+    return isJWE_msgpack_single(x) or isJWE_msgpack_multi(x)
+
+def isJOSE_msgpack(x):
+    """
+    Test whether input is a JOSE-msgpack object
+    @rtype: boolean
+    """
+    return isJWS_msgpack(x) or isJWE_msgpack(x)

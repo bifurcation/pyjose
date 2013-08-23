@@ -103,43 +103,39 @@ def encrypt(header, keys, plaintext, protect=[], aad=b''):
     (CEK, JWEEncryptedKey, JWEInitializationVector, params) \
         = josecrypto.generateSenderParams( \
             header["alg"], header["enc"], key, header=header)
-    EncodedJWEInitializationVector = b64enc(JWEInitializationVector)
-    EncodedJWEEncryptedKey = b64enc(JWEEncryptedKey)
     for name in params:
         header[name] = params[name]
 
     # Split the header
     (JWEUnprotectedHeader, JWEProtectedHeader) = splitHeader(header,protect)
     if len(JWEProtectedHeader) > 0:
-        EncodedJWEProtectedHeader = b64enc(json.dumps(JWEProtectedHeader))
+        SerializedJWEProtectedHeader = json.dumps(JWEProtectedHeader)
     else:
-        EncodedJWEProtectedHeader = ""
+        SerializedJWEProtectedHeader = ""
 
     # Construct the AAD
     JWEAuthenticatedData = createSigningInput( \
-        EncodedJWEProtectedHeader, JWEAAD, JWE=True)
+        SerializedJWEProtectedHeader, JWEAAD, JWE=True)
 
     # Perform the encryption
     (JWECiphertext, JWEAuthenticationTag) = josecrypto.encrypt( \
         header["enc"], CEK, JWEInitializationVector, \
         JWEAuthenticatedData, JWEPlaintext )
-    EncodedJWECiphertext = b64enc(JWECiphertext)
-    EncodedJWEAuthenticationTag = b64enc(JWEAuthenticationTag)
 
     # Assemble the JWE and return
     JWE = {
-        "ciphertext": EncodedJWECiphertext
+        "ciphertext": JWECiphertext
     }
     if len(JWEUnprotectedHeader) > 0:
         JWE["unprotected"] = JWEUnprotectedHeader
     if len(JWEProtectedHeader) > 0:
-        JWE["protected"] = EncodedJWEProtectedHeader
+        JWE["protected"] = SerializedJWEProtectedHeader
     if len(JWEEncryptedKey) > 0:
-        JWE["encrypted_key"] = EncodedJWEEncryptedKey
+        JWE["encrypted_key"] = JWEEncryptedKey
     if len(JWEInitializationVector) > 0:
-        JWE["iv"] = EncodedJWEInitializationVector
+        JWE["iv"] = JWEInitializationVector
     if len(JWEAuthenticationTag) > 0:
-        JWE["tag"] = EncodedJWEAuthenticationTag
+        JWE["tag"] = JWEAuthenticationTag
     return JWE 
 
 def decrypt(JWE, keys):
@@ -185,22 +181,18 @@ def decrypt(JWE, keys):
         return decrypt_multi(JWE, keys)
 
     # Capture the crypto inputs
-    EncodedJWECiphertext = JWE["ciphertext"]
-    EncodedJWEInitializationVector = JWE["iv"] if "iv" in JWE else ""
-    EncodedJWEAuthenticationTag = JWE["tag"] if "tag" in JWE else ""
-    EncodedJWEAAD = JWE["aad"] if "aad" in JWE else ""
-    JWECiphertext = b64dec(EncodedJWECiphertext)
-    JWEInitializationVector = b64dec(EncodedJWEInitializationVector)
-    JWEAuthenticationTag = b64dec(EncodedJWEAuthenticationTag)
-    JWEAAD = b64dec(EncodedJWEAAD)
+    JWECiphertext = JWE["ciphertext"]
+    JWEInitializationVector = JWE["iv"] if "iv" in JWE else ""
+    JWEAuthenticationTag = JWE["tag"] if "tag" in JWE else ""
+    JWEAAD = JWE["aad"] if "aad" in JWE else ""
 
     # Reassemble the header
     JWEUnprotectedHeader = JWE["unprotected"] if ("unprotected" in JWE) else {}
     if "protected" in JWE:
-        EncodedJWEProtectedHeader = JWE["protected"]     
-        JWEProtectedHeader = json.loads(b64dec(EncodedJWEProtectedHeader))
+        SerializedJWEProtectedHeader = JWE["protected"]     
+        JWEProtectedHeader = json.loads(SerializedJWEProtectedHeader)
     else:
-        EncodedJWEProtectedHeader = ""
+        SerializedJWEProtectedHeader = ""
         JWEProtectedHeader = {}
     header = joinHeader(JWEUnprotectedHeader, JWEProtectedHeader)
 
@@ -210,14 +202,13 @@ def decrypt(JWE, keys):
 
     # Construct the AAD
     JWEAuthenticatedData = createSigningInput( \
-        EncodedJWEProtectedHeader, JWEAAD, JWE=True)
+        SerializedJWEProtectedHeader, JWEAAD, JWE=True)
 
     # Locate the key
     key = josecrypto.findKey(header, keys)
 
     # Unwrap or derive the key according to 'alg'
-    EncodedJWEEncryptedKey = JWE["encrypted_key"] if "encrypted_key" in JWE else ""
-    JWEEncryptedKey = b64dec(EncodedJWEEncryptedKey)
+    JWEEncryptedKey = JWE["encrypted_key"] if "encrypted_key" in JWE else ""
     CEK = josecrypto.decryptKey(header["alg"], header["enc"], key, JWEEncryptedKey, header)
 
     # Perform the decryption
@@ -313,7 +304,7 @@ def encrypt_multi(header, recipients, keys, plaintext, protect=[], aad=b''):
         r = joinHeader(r, params)
         wrappedKeys.append({
             "header": r,
-            "encrypted_key": b64enc(encryptedKey)
+            "encrypted_key": encryptedKey
         })
         
     # Assemble and return the overall JWE
@@ -365,8 +356,9 @@ def decrypt_multi(JWE, keys):
     selectedRecipient = None
     for r in JWE["recipients"]:
         try:
-            key = josecrypto.findKey(r["header"], keys)
+            key = josecrypto.findKey(r["header"], keys, allowDefault=False)
             selectedRecipient = r
+            break
         except:
             pass
     if selectedRecipient == None:

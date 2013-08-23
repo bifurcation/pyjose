@@ -8,7 +8,6 @@ forms of unserialized JOSE objects.
 """
 
 import json
-from .. import util
 
 ### Unserialized
 
@@ -22,10 +21,12 @@ def isJWS_unserialized_single(x):
        and ("protected" in x or "unprotected" in x):
         try: 
             if "protected" in x: 
-                json.loads(util.b64dec(x["protected"]))
+                json.loads(x["protected"])
             return True
         except:
             return False
+    else: 
+        return False
 
 def isJWS_unserialized_multi(x):
     """
@@ -50,12 +51,14 @@ def isJWE_unserialized_single(x):
     if isinstance(x, dict) \
        and ("unprotected" in x or "protected" in x) \
        and ("ciphertext" in x):
-        #try:
-        if "protected" in x:
-            json.loads(util.b64dec(x["protected"]))
-        return True
-        #except:
-        #    return False
+        try:
+            if "protected" in x:
+                json.loads(x["protected"])
+            return True
+        except:
+            return False
+    else:
+        return False
 
 def isJWE_unserialized_multi(x):
     """

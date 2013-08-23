@@ -183,7 +183,7 @@ def createSigningInput(header, payload, JWE=False):
     given an Encoded Protected Header and Encoded Payload.
     
     @type  header : string
-    @param header : Serialized, base64url-encoded protected header
+    @param header : Serialized protected header
     @type  payload: string
     @param payload: Base64url-encoded payload or 'aad' value
     @rtype: string
@@ -191,15 +191,15 @@ def createSigningInput(header, payload, JWE=False):
       Additional Authenticated Data
     """
     if not JWE:
-        return header + "." + payload
+        return b64enc(header) + "." + b64enc(payload)
     else:
         if len(payload) > 0:
-            return header +"."+ payload
+            return b64enc(header) +"."+ payload
         else:
-            return header
+            return b64enc(header)
     ### XXX: With direct signing (ISSUE-59)
     # if len(json.loads(header)) == 0:
-    #     return b64dec(payload)
+    #     return payload
     # else:
-    #     return header +"."+ payload
+    #     return b64enc(header) +"."+ b64enc(payload)
 

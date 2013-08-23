@@ -27,21 +27,21 @@ def isJOSE_serialized(x):
     Test whether input is a serialized JOSE object
     @rtype: boolean
     """
-    return isJOSE_JSON(x) or isJOSE_compact(x)
+    return isJOSE_JSON(x) or isJOSE_compact(x) or isJOSE_msgpack(x)
 
 def isJWS(x):
     """
     Test whether input is a JWS object (compact or JSON)
     @rtype: boolean
     """
-    return isJWS_unserialized(x) or isJWS_JSON(x) or isJWS_compact(x)
+    return isJWS_unserialized(x) or isJWS_JSON(x) or isJWS_compact(x) or isJWS_msgpack(x)
 
 def isJWE(x):
     """
     Test whether input is a JWE object (compact or JSON)
     @rtype: boolean
     """
-    return isJWE_unserialized(x) or isJWE_JSON(x) or isJWS_compact(x)
+    return isJWE_unserialized(x) or isJWE_JSON(x) or isJWS_compact(x) or isJWS_msgpack(x)
 
 def isJOSE(x):
     """

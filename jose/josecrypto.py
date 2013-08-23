@@ -162,7 +162,7 @@ def extractRSAfromCert(pem):
     rsa = RSA.importKey(subjectPublicKeyInfo)
     return exportKey(rsa, "RSA")
 
-def findKey(header, keys):
+def findKey(header, keys, allowDefault=True):
     """
     Locates a usable key in a set of keys based on identifiers 
     in the header.  
@@ -176,6 +176,7 @@ def findKey(header, keys):
         certificate in the chain, and search as for "jwk"
           - If none found, return the extracted public key
       - If there is only one key in the set, that key is used.
+          - If allowDefualt == False, this will not be done
 
     If no key is found, throws an exception.
 
@@ -183,21 +184,26 @@ def findKey(header, keys):
     @param header: Header with key identifier(s)
     @type  keys  : list or set
     @param keys  : Set of JWKs from which key is to be chosen
+    @type  allowDefault: boolean
+    @param allowDefault: If there is a single key and no other match,
+      return the single key
     @rtype: dict 
     @return: JWK selected from the set 
     """
-    # Try "kid" search
-    if "kid" in header:
-        for k in keys:
-            if "kid" in k and k["kid"] == header["kid"]:
-                return k
 
-    # Try "jwk" search
     def allFieldsMatch(a, b):
         for k in a:
             if k not in b or a[k] != b[k]:
                 return False
         return True
+    
+    # Try "kid" search
+    if "kid" in header:
+        for k in keys:
+            if "kid" in k and k["kid"] == header["kid"]:
+                return k
+    
+    # Try "jwk" search
     if "jwk" in header:
         for k in keys:
             if allFieldsMatch(header["jwk"], k):
@@ -212,9 +218,9 @@ def findKey(header, keys):
             if allFieldsMatch(jwk, k):
                 return k
         return jwk
-
+    
     # Only one key in the set
-    if len(keys) == 1:
+    if len(keys) == 1 and allowDefault:
         return keys[0]
     
     # Tried everything, give up

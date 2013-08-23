@@ -75,36 +75,34 @@ def sign(header, keys, payload, protect=[]):
 
     # Capture the payload
     JWSPayload = copy(payload)
-    EncodedJWSPayload = b64enc(JWSPayload)
 
     # Split the header
     (JWSUnprotectedHeader, JWSProtectedHeader) = splitHeader(header, protect)
     if len(JWSProtectedHeader) > 0:
-        EncodedJWSProtectedHeader = b64enc(json.dumps(JWSProtectedHeader))
+        SerializedJWSProtectedHeader = json.dumps(JWSProtectedHeader)
     else: 
-        EncodedJWSProtectedHeader = ""
+        SerializedJWSProtectedHeader = ""
 
     # Check that critical header is sensible, if present
     if not compliantCrit(header):
         raise Exception("'crit' parameter contains unsuitable fields")
 
     # Construct the JWS Signing Input
-    JWSSigningInput = createSigningInput(EncodedJWSProtectedHeader, EncodedJWSPayload)
+    JWSSigningInput = createSigningInput(SerializedJWSProtectedHeader, JWSPayload)
 
     # Look up key
     key = josecrypto.findKey(header, keys)
 
     # Compute the signature
     JWSSignature = josecrypto.sign(header["alg"], key, JWSSigningInput)
-    EncodedJWSSignature = b64enc(JWSSignature)
 
     # Assemble and return the object 
     JWS = {
-        "payload": EncodedJWSPayload,
-        "signature": EncodedJWSSignature
+        "payload": JWSPayload,
+        "signature": JWSSignature
     }
     if len(JWSProtectedHeader) > 0:
-        JWS["protected"] = EncodedJWSProtectedHeader
+        JWS["protected"] = SerializedJWSProtectedHeader
     if len(JWSUnprotectedHeader) > 0:
         JWS["unprotected"] = JWSUnprotectedHeader
     return JWS
@@ -157,17 +155,15 @@ def verify(JWS, keys):
 
 
     # Capture the payload
-    EncodedJWSPayload = JWS["payload"]
-    JWSPayload = b64dec(EncodedJWSPayload)
+    JWSPayload = JWS["payload"]
 
     # Reassemble the header
     JWSUnprotectedHeader = JWS["unprotected"] if ("unprotected" in JWS) else {}
-    EncodedJWSProtectedHeader = JWS["protected"] if ("protected" in JWS) else ""
     if "protected" in JWS:
-        EncodedJWSProtectedHeader = JWS["protected"]     
-        JWSProtectedHeader = json.loads(b64dec(EncodedJWSProtectedHeader))
+        SerializedJWSProtectedHeader = JWS["protected"]    
+        JWSProtectedHeader = json.loads(SerializedJWSProtectedHeader)
     else:
-        EncodedJWSProtectedHeader = ""
+        SerializedJWSProtectedHeader = ""
         JWSProtectedHeader = {}
     header = joinHeader(JWSUnprotectedHeader, JWSProtectedHeader)
 
@@ -176,14 +172,13 @@ def verify(JWS, keys):
         raise Exception("Unsupported critical fields")
 
     # Construct the JWS Signing Input
-    JWSSigningInput = createSigningInput(EncodedJWSProtectedHeader, EncodedJWSPayload)
+    JWSSigningInput = createSigningInput(SerializedJWSProtectedHeader, JWSPayload)
 
     # Look up the key
     key = josecrypto.findKey(header, keys)
 
     # Verify the signature
-    EncodedJWSSignature = JWS["signature"]
-    JWSSignature = b64dec(EncodedJWSSignature)
+    JWSSignature = JWS["signature"]
     JWSVerificationResult = josecrypto.verify( \
         header["alg"], key, JWSSigningInput, JWSSignature )
     
@@ -237,7 +232,7 @@ def sign_multi(signers, keys, payload):
         JWSs.append(sign(s["header"], keys, payload, protect))
     # Combine the JWSs by deleting their payloads
     JWS = { 
-        "payload": b64enc(payload),
+        "payload": payload,
         "signatures": []
     }
     for j in JWSs:
@@ -298,7 +293,7 @@ def verify_multi(JWS, keys):
     # Reconstruct and validte individual JWSs for each signer
     payload = JWS["payload"]
     results = {
-        "payload": b64dec(payload),
+        "payload": payload,
         "results": []
     }
     for s in JWS["signatures"]:
@@ -314,7 +309,7 @@ def verify_multi(JWS, keys):
         if ("unprotected" in s):
             r["unprotected"] = s["unprotected"]
         if ("protected" in s):
-            r["protected"] = json.loads(b64dec(s["protected"]))
+            r["protected"] = json.loads(s["protected"])
         results["results"].append(r)
 
     # Return the results array
