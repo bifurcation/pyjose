@@ -2,9 +2,10 @@
 
 In no particular order: 
 
-* Support "jku" / "x5u"
-* Support "JWP" (or something for unsigned content)
+* Support "jku" / "x5u" (?)
+* Support "zip" in JWS (after signature)
 * Present key used for verification in result
+* Refine crypto API to complete analogy to WebCrypto (with intelligent defaults)
 
 
 # DONE
@@ -18,3 +19,4 @@ In no particular order:
 * Add tests for "jwk" and "x5c"
 * Change unserialized format from base64 to binary
 * Add Msgpack serialization
+* Support "JWP" (or something for unsigned content)

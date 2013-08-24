@@ -13,6 +13,15 @@ from unserialized import *
 
 ### JSON-serialized
 
+def isJWP_JSON(x):
+    """
+    Test whether input is a JWP-JSON object
+    @rtype: boolean
+    """
+    try: return isJWP_unserialized(deserialize_JSON(x))
+    except: return False
+
+
 def isJWS_JSON_single(x):
     """ 
     Test whether input is a single-signature JWS-JSON object 
@@ -64,9 +73,17 @@ def isJOSE_JSON(x):
     Test whether input is a JOSE-JSON object
     @rtype: boolean
     """
-    return isJWS_JSON(x) or isJWE_JSON(x)
+    return isJWS_JSON(x) or isJWE_JSON(x) or isJWP_JSON(x)
 
 ### Compact-serialized
+
+def isJWP_compact(x):
+    """
+    Test whether input is a JWP-compact object
+    @rtype: boolean
+    """
+    try: return isJWP_unserialized(deserialize_compact(x))
+    except: return False
 
 def isJWS_compact(x):
     """
@@ -89,10 +106,18 @@ def isJOSE_compact(x):
     Test whether input is a JOSE-compact object
     @rtype: boolean
     """
-    return isJWS_compact(x) or isJWE_compact(x)
+    return isJWS_compact(x) or isJWE_compact(x) or isJWP_compact(x)
 
 
 ### msgpack-serialized
+
+def isJWP_msgpack(x):
+    """
+    Test whether input is a JWP-msgpack object
+    @rtype: boolean
+    """
+    try: return isJWP_unserialized(deserialize_msgpack(x))
+    except: return False
 
 def isJWS_msgpack_single(x):
     """ 
@@ -145,4 +170,4 @@ def isJOSE_msgpack(x):
     Test whether input is a JOSE-msgpack object
     @rtype: boolean
     """
-    return isJWS_msgpack(x) or isJWE_msgpack(x)
+    return isJWS_msgpack(x) or isJWE_msgpack(x) or isJWP_msgpack(x)

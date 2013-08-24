@@ -13,7 +13,7 @@ import json
 import msgpack
 from copy import copy
 from validate.unserialized import \
-    isJOSE_unserialized, isJWS_unserialized, isJWE_unserialized
+    isJOSE_unserialized, isJWS_unserialized, isJWE_unserialized, isJWP_unserialized
 from util import b64enc, b64dec
                      
 
@@ -123,6 +123,10 @@ def serialize_compact(jose):
     """
     if not isJOSE_unserialized(jose):
         raise Exception("Can't serialize something that's not unserialized JOSE")
+    elif isJWP_unserialized(jose):
+        unprotected = b64enc(json.dumps(jose["unprotected"]))
+        payload = b64enc(jose["payload"])
+        return ".".join([unprotected,payload])
     elif isJWS_unserialized(jose) and "unprotected" not in jose:
         return ".".join([               \
             b64enc(jose["protected"]),  \
@@ -149,7 +153,12 @@ def deserialize_compact(x):
     @return: The unserialized form of the input
     """
     components = x.split(".")
-    if len(components) == 3:
+    if len(components) == 2:
+        jose = {
+            "unprotected": json.loads(b64dec(components[0])),
+            "payload": b64dec(components[1])
+        }
+    elif len(components) == 3:
         jose = {
             "protected": b64dec(components[0]),
             "payload": b64dec(components[1]),

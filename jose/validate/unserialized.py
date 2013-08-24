@@ -11,6 +11,18 @@ import json
 
 ### Unserialized
 
+def isJWP_unserialized(x):
+    """
+    Test whether input is an unserialized JWP object
+    @rtype boolean
+    """
+    if isinstance(x, dict) \
+       and "payload" in x and isinstance(x["unprotected"], dict)\
+       and "unprotected" in x and "signature" not in x:
+       return True
+    else:
+        return False
+
 def isJWS_unserialized_single(x):
     """ 
     Test whether input is a single-signature unserialized JWS object 
@@ -79,6 +91,7 @@ def isJOSE_unserialized(x):
     Test whether input is an unserialized JOSE object
     @rtype: boolean
     """
-    return isJWS_unserialized(x) or isJWE_unserialized(x)
+    return isJWS_unserialized(x) or isJWE_unserialized(x) \
+        or isJWP_unserialized(x)
 
 
